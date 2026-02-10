@@ -2,117 +2,78 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Retro Castle Menu</title>
+    <title>Pixel Castle Menu</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: 'Press Start 2P', cursive; }
-        
-        #game-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            /* Garante que a sua imagem background.png apareça certinho */
+        #container {
+            position: relative; width: 100vw; height: 100vh;
             background: url('background.png') no-repeat center center;
-            background-size: contain;
-            image-rendering: pixelated;
+            background-size: contain; image-rendering: pixelated;
         }
-
         canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-
-        #menu {
-            position: absolute;
-            right: 10%;
-            top: 45%;
-            color: white;
-        }
-
-        .title { color: #E66C00; font-size: 2vw; margin-bottom: 30px; text-shadow: 4px 4px #000; }
+        #menu { position: absolute; right: 10%; top: 45%; color: white; }
         .option { font-size: 1.2vw; margin: 20px 0; display: flex; align-items: center; text-shadow: 2px 2px #000; opacity: 0.7; }
         .active { opacity: 1; transform: scale(1.1); }
         .cursor { margin-right: 15px; visibility: hidden; }
         .active .cursor { visibility: visible; animation: blink 0.5s infinite; }
-
         @keyframes blink { 0% { opacity: 0; } 100% { opacity: 1; } }
-        #msg { position: fixed; bottom: 10px; width: 100%; text-align: center; color: #444; font-size: 10px; }
     </style>
 </head>
 <body>
-
-    <div id="game-container">
-        <canvas id="effects"></canvas>
+    <div id="container">
+        <canvas id="chuva"></canvas>
         <div id="menu">
-            <div class="title">START GAME</div>
             <div class="option active"><span class="cursor">></span>1 PLAYER</div>
             <div class="option"><span class="cursor">></span>2 PLAYERS</div>
             <div class="option"><span class="cursor">></span>EXIT</div>
         </div>
     </div>
-    <div id="msg">CLIQUE NA TELA PARA O SOM DARK | USE AS SETAS DO TECLADO</div>
-
     <script>
-        const canvas = document.getElementById('effects');
+        const canvas = document.getElementById('chuva');
         const ctx = canvas.getContext('2d');
-        const options = document.querySelectorAll('.option');
-        let index = 0;
-        let audioCtx = null;
+        const opts = document.querySelectorAll('.option');
+        let idx = 0; let audio = null;
 
         function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.onresize = resize; resize();
 
-        // Chuva Pixelada
-        let rain = [];
-        for(let i=0; i<100; i++) rain.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, v: Math.random()*12+8});
+        let gotas = [];
+        for(let i=0; i<100; i++) gotas.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, v: Math.random()*10+5});
 
-        function animate() {
+        function loop() {
             ctx.clearRect(0,0,canvas.width, canvas.height);
-            ctx.fillStyle = "rgba(180, 180, 255, 0.3)";
-            rain.forEach(p => {
-                ctx.fillRect(p.x, p.y, 2, 8);
-                p.y += p.v;
-                if(p.y > canvas.height) p.y = -10;
-            });
-            // Efeito de raio sutil
-            if(Math.random() > 0.99) {
-                ctx.fillStyle = "rgba(255,255,255,0.05)";
-                ctx.fillRect(0,0,canvas.width, canvas.height);
-            }
-            requestAnimationFrame(animate);
+            ctx.fillStyle = "rgba(150, 150, 255, 0.3)";
+            gotas.forEach(g => { ctx.fillRect(g.x, g.y, 2, 8); g.y += g.v; if(g.y > canvas.height) g.y = -10; });
+            requestAnimationFrame(loop);
         }
-        animate();
+        loop();
 
-        // Teclado
         window.addEventListener('keydown', (e) => {
-            options[index].classList.remove('active');
-            if(e.key === "ArrowUp") index = index > 0 ? index - 1 : 2;
-            if(e.key === "ArrowDown") index = index < 2 ? index + 1 : 0;
-            options[index].classList.add('active');
-            if(audioCtx) playTone(140, 0.1, 'square');
+            opts[idx].classList.remove('active');
+            if(e.key === "ArrowUp") idx = idx > 0 ? idx - 1 : 2;
+            if(e.key === "ArrowDown") idx = idx < 2 ? idx + 1 : 0;
+            opts[idx].classList.add('active');
+            if(audio) som(150, 0.1, 'square');
         });
 
-        // Música Dark 8-bit (O que você pediu)
-        function startAudio() {
-            if(audioCtx) return;
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            document.getElementById('msg').style.display = "none";
-            
+        window.onclick = () => {
+            if(audio) return;
+            audio = new AudioContext();
             setInterval(() => {
-                const darkNotes = [55, 48, 52, 41, 36]; // Frequências bem graves e sinistras
-                playTone(darkNotes[Math.floor(Math.random()*darkNotes.length)], 1.2, 'sawtooth');
-            }, 1300);
-        }
+                const notas = [55, 48, 52, 41]; 
+                som(notas[Math.floor(Math.random()*notas.length)], 1.5, 'sawtooth');
+            }, 1200);
+        };
 
-        function playTone(freq, dur, type) {
-            const osc = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            osc.type = type; 
-            osc.frequency.value = freq;
-            g.gain.setValueAtTime(0.04, audioCtx.currentTime);
-            g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
-            osc.connect(g); g.connect(audioCtx.destination);
-            osc.start(); osc.stop(audioCtx.currentTime + dur);
+        function som(f, d, t) {
+            const o = audio.createOscillator(); const g = audio.createGain();
+            o.type = t; o.frequency.value = f;
+            g.gain.setValueAtTime(0.05, audio.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + d);
+            o.connect(g); g.connect(audio.destination);
+            o.start(); o.stop(audio.currentTime + d);
         }
-
-        window.addEventListener('mousedown', startAudio);
     </script>
 </body>
 </html>
