@@ -2,233 +2,196 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Retro Castle Menu</title>
+    <title>Castle Menu Retro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
-        /* Reset e Fundo */
         body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
             background-color: #000;
-            font-family: 'Courier New', Courier, monospace;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
+            font-family: 'Press Start 2P', cursive;
         }
 
+        /* O segredo do enquadramento está aqui */
         #game-container {
             position: relative;
-            width: 100vw;
-            height: 100vh;
-            background: url('https://raw.githubusercontent.com/Gemini-AI-Prompts/Images/main/pixel-castle.png') no-repeat center center;
-            background-size: cover;
-            image-rendering: pixelated; /* Mantém o estilo pixel art */
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            justify-content: center;
-            padding-right: 10%;
+            width: 100vh; /* Mantém proporção quadrada/paisagem */
+            max-width: 100%;
+            height: 75vh;
+            /* SE VOCÊ SALVAR A FOTO COMO background.png NO GITHUB, ELA APARECE AQUI */
+            background: url('background.png') no-repeat center center;
+            background-size: contain;
+            image-rendering: pixelated;
+            border: 4px solid #222;
+            box-shadow: 0 0 50px rgba(0,0,0,1);
         }
 
-        /* Camada de Chuva */
-        #rain-canvas {
+        /* Canvas para Chuva e Raios */
+        canvas {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             pointer-events: none;
         }
 
-        /* Menu de Texto */
-        .menu {
-            z-index: 10;
+        /* Menu */
+        #menu {
+            position: absolute;
+            right: 10%;
+            top: 45%;
             color: white;
-            text-shadow: 4px 4px #000;
-            user-select: none;
+            z-index: 10;
         }
 
         .title {
             color: #ff6600;
-            font-size: 4rem;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-
-        .options {
-            font-size: 2.5rem;
-            list-style: none;
-            text-transform: uppercase;
+            font-size: 25px;
+            margin-bottom: 30px;
+            text-shadow: 3px 3px #000;
         }
 
         .option {
-            margin: 10px 0;
-            position: relative;
-            padding-left: 50px;
-            transition: transform 0.1s;
+            font-size: 18px;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            text-shadow: 2px 2px #000;
+            opacity: 0.8;
         }
 
-        /* Seta Seletora Animada */
+        .active {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
         .cursor {
+            margin-right: 15px;
+            visibility: hidden;
+        }
+
+        .active .cursor {
+            visibility: visible;
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes blink { 0% { opacity: 0; } 100% { opacity: 1; } }
+
+        /* Luzes piscantes do castelo */
+        .window-light {
             position: absolute;
-            left: 0;
-            color: #fff;
-            animation: blink 0.5s infinite alternate;
-        }
-
-        @keyframes blink {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
-
-        /* Animação de Balanço (Árvores/Nuvens simuladas por balanço leve da imagem) */
-        .sway {
-            animation: swayAnim 8s ease-in-out infinite;
-        }
-
-        @keyframes swayAnim {
-            0%, 100% { transform: scale(1.05) translateX(0); }
-            50% { transform: scale(1.05) translateX(-10px); }
-        }
-
-        /* Luzes do Castelo Piscando */
-        .window-glow {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            background: rgba(255, 255, 0, 0.3);
-            filter: blur(10px);
+            background: rgba(255, 255, 150, 0.4);
+            filter: blur(4px);
             border-radius: 50%;
-            animation: flicker 3s infinite;
+            animation: flicker 4s infinite;
         }
 
         @keyframes flicker {
-            0%, 100% { opacity: 0.3; }
+            0%, 100% { opacity: 0.2; }
             50% { opacity: 0.8; }
-            70% { opacity: 0.4; }
         }
 
-        /* Instrução Inicial */
-        #start-prompt {
-            position: absolute;
-            bottom: 20px;
-            width: 100%;
-            text-align: center;
-            color: white;
-            font-size: 1rem;
-            background: rgba(0,0,0,0.5);
+        #hint {
+            position: fixed;
+            bottom: 10px;
+            color: #444;
+            font-size: 10px;
         }
     </style>
 </head>
-<body class="sway">
+<body>
 
     <div id="game-container">
-        <canvas id="rain-canvas"></canvas>
+        <canvas id="effects"></canvas>
         
-        <div class="window-glow" style="top: 35%; left: 21%;"></div>
-        <div class="window-glow" style="top: 45%; left: 23%;"></div>
+        <div class="window-light" style="width: 15px; height: 15px; top: 35%; left: 21%;"></div>
+        <div class="window-light" style="width: 10px; height: 10px; top: 44%; left: 27%;"></div>
 
-        <div class="menu">
+        <div id="menu">
             <div class="title">START GAME</div>
-            <div class="options">
-                <div class="option" id="opt0"><span class="cursor" id="c0">></span> 1 PLAYER</div>
-                <div class="option" id="opt1"><span class="cursor" id="c1" style="display:none">></span> 2 PLAYERS</div>
-                <div class="option" id="opt2"><span class="cursor" id="c2" style="display:none">></span> EXIT</div>
-            </div>
+            <div class="option active" id="opt0"><span class="cursor">></span>1 PLAYER</div>
+            <div class="option" id="opt1"><span class="cursor">></span>2 PLAYERS</div>
+            <div class="option" id="opt2"><span class="cursor">></span>EXIT</div>
         </div>
     </div>
 
-    <div id="start-prompt">Clique em qualquer lugar para ligar o som e usar as setas (↑ ↓)</div>
+    <div id="hint">CLIQUE PARA SOM | USE AS SETAS ↑ ↓</div>
 
     <script>
-        // --- Lógica do Menu ---
-        let currentIndex = 0;
-        const totalOptions = 3;
+        const canvas = document.getElementById('effects');
+        const ctx = canvas.getContext('2d');
+        let options = document.querySelectorAll('.option');
+        let index = 0;
+        let audioCtx = null;
 
-        function updateMenu() {
-            for (let i = 0; i < totalOptions; i++) {
-                document.getElementById(`c${i}`).style.display = (i === currentIndex) ? 'block' : 'none';
-            }
-            playTone(150, 0.05); // Som de "tic" ao mover
+        // Ajustar Canvas
+        function resize() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
         }
+        window.onresize = resize;
+        resize();
 
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowUp') {
-                currentIndex = (currentIndex > 0) ? currentIndex - 1 : totalOptions - 1;
-                updateMenu();
-            } else if (e.key === 'ArrowDown') {
-                currentIndex = (currentIndex < totalOptions - 1) ? currentIndex + 1 : 0;
-                updateMenu();
+        // Chuva
+        let rain = [];
+        for(let i=0; i<100; i++) rain.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, v: Math.random()*5+5});
+
+        function animate() {
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            
+            // Desenhar Chuva
+            ctx.fillStyle = "rgba(150, 150, 200, 0.4)";
+            rain.forEach(p => {
+                ctx.fillRect(p.x, p.y, 1, 5);
+                p.y += p.v;
+                if(p.y > canvas.height) p.y = -5;
+            });
+
+            // Efeito de Raio Aleatório
+            if(Math.random() > 0.995) {
+                ctx.fillStyle = "rgba(255,255,255,0.2)";
+                ctx.fillRect(0,0,canvas.width, canvas.height);
             }
+
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Controles
+        window.addEventListener('keydown', (e) => {
+            options[index].classList.remove('active');
+            if(e.key === "ArrowUp") index = index > 0 ? index - 1 : 2;
+            if(e.key === "ArrowDown") index = index < 2 ? index + 1 : 0;
+            options[index].classList.add('active');
+            if(audioCtx) playTone(150, 0.05, 'square');
         });
 
-        // --- Efeito de Chuva (Canvas) ---
-        const canvas = document.getElementById('rain-canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        let particles = [];
-        for (let i = 0; i < 100; i++) {
-            particles.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                l: Math.random() * 20,
-                v: Math.random() * 10 + 5
-            });
-        }
-
-        function drawRain() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = 'rgba(174, 194, 224, 0.5)';
-            ctx.lineWidth = 1;
-            particles.forEach(p => {
-                ctx.beginPath();
-                ctx.moveTo(p.x, p.y);
-                ctx.lineTo(p.x, p.y + p.l);
-                ctx.stroke();
-                p.y += p.v;
-                if (p.y > canvas.height) p.y = -p.l;
-            });
-            requestAnimationFrame(drawRain);
-        }
-        drawRain();
-
-        // --- Música 8-bit (Web Audio API) ---
-        let audioCtx;
-        
-        function initAudio() {
-            if (audioCtx) return;
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            playMusic();
-            document.getElementById('start-prompt').style.display = 'none';
-        }
-
-        function playTone(freq, duration) {
-            if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'square'; // Som "quadrado" estilo NES
-            osc.frequency.value = freq;
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + duration);
-        }
-
-        // Loop de música simples e sombria
-        function playMusic() {
-            const melody = [130, 146, 155, 130, 123, 110];
-            let i = 0;
+        // Música Dark 8-bit
+        function startAudio() {
+            if(audioCtx) return;
+            audioCtx = new AudioContext();
+            document.getElementById('hint').style.opacity = "0";
+            
+            // Loop de Baixo Sombrio
             setInterval(() => {
-                playTone(melody[i], 0.4);
-                i = (i + 1) % melody.length;
-            }, 500);
+                const mel = [55, 48, 52, 45]; // Frequências bem graves
+                playTone(mel[Math.floor(Math.random()*mel.length)], 0.8, 'sawtooth');
+            }, 1000);
         }
 
-        window.addEventListener('click', initAudio);
+        function playTone(freq, dur, type) {
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            g.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+            osc.connect(g); g.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + dur);
+        }
+
+        window.addEventListener('mousedown', startAudio);
     </script>
 </body>
 </html>
