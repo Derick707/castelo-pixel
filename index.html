@@ -1,194 +1,235 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<title>Dark Pixel Castle</title>
-<style>
-  body {
-    margin: 0;
-    background: black;
-    overflow: hidden;
-    font-family: monospace;
-  }
-  canvas {
-    image-rendering: pixelated;
-  }
-  #menu {
-    position: absolute;
-    right: 60px;
-    bottom: 60px;
-    color: #ffb347;
-    text-align: right;
-  }
-  .option {
-    font-size: 22px;
-    margin: 8px 0;
-    cursor: pointer;
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Castle Menu</title>
+    <style>
+        /* Reset e Fundo */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: url('https://raw.githubusercontent.com/Gemini-AI-Prompts/Images/main/pixel-castle.png') no-repeat center center;
+            background-size: cover;
+            image-rendering: pixelated; /* Mantém o estilo pixel art */
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: center;
+            padding-right: 10%;
+        }
+
+        /* Camada de Chuva */
+        #rain-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* Menu de Texto */
+        .menu {
+            z-index: 10;
+            color: white;
+            text-shadow: 4px 4px #000;
+            user-select: none;
+        }
+
+        .title {
+            color: #ff6600;
+            font-size: 4rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .options {
+            font-size: 2.5rem;
+            list-style: none;
+            text-transform: uppercase;
+        }
+
+        .option {
+            margin: 10px 0;
+            position: relative;
+            padding-left: 50px;
+            transition: transform 0.1s;
+        }
+
+        /* Seta Seletora Animada */
+        .cursor {
+            position: absolute;
+            left: 0;
+            color: #fff;
+            animation: blink 0.5s infinite alternate;
+        }
+
+        @keyframes blink {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        /* Animação de Balanço (Árvores/Nuvens simuladas por balanço leve da imagem) */
+        .sway {
+            animation: swayAnim 8s ease-in-out infinite;
+        }
+
+        @keyframes swayAnim {
+            0%, 100% { transform: scale(1.05) translateX(0); }
+            50% { transform: scale(1.05) translateX(-10px); }
+        }
+
+        /* Luzes do Castelo Piscando */
+        .window-glow {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 0, 0.3);
+            filter: blur(10px);
+            border-radius: 50%;
+            animation: flicker 3s infinite;
+        }
+
+        @keyframes flicker {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+            70% { opacity: 0.4; }
+        }
+
+        /* Instrução Inicial */
+        #start-prompt {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-size: 1rem;
+            background: rgba(0,0,0,0.5);
+        }
+    </style>
 </head>
-<body>
+<body class="sway">
 
-<canvas id="game"></canvas>
+    <div id="game-container">
+        <canvas id="rain-canvas"></canvas>
+        
+        <div class="window-glow" style="top: 35%; left: 21%;"></div>
+        <div class="window-glow" style="top: 45%; left: 23%;"></div>
 
-<div id="menu">
-  <div style="font-size:32px;">START GAME</div>
-  <div class="option">▶ 1 PLAYER</div>
-  <div class="option">2 PLAYERS</div>
-  <div class="option">EXIT</div>
-</div>
+        <div class="menu">
+            <div class="title">START GAME</div>
+            <div class="options">
+                <div class="option" id="opt0"><span class="cursor" id="c0">></span> 1 PLAYER</div>
+                <div class="option" id="opt1"><span class="cursor" id="c1" style="display:none">></span> 2 PLAYERS</div>
+                <div class="option" id="opt2"><span class="cursor" id="c2" style="display:none">></span> EXIT</div>
+            </div>
+        </div>
+    </div>
 
-<script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+    <div id="start-prompt">Clique em qualquer lugar para ligar o som e usar as setas (↑ ↓)</div>
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+    <script>
+        // --- Lógica do Menu ---
+        let currentIndex = 0;
+        const totalOptions = 3;
 
-const PIXEL = 6; // tamanho dos "pixels"
+        function updateMenu() {
+            for (let i = 0; i < totalOptions; i++) {
+                document.getElementById(`c${i}`).style.display = (i === currentIndex) ? 'block' : 'none';
+            }
+            playTone(150, 0.05); // Som de "tic" ao mover
+        }
 
-// FUNÇÃO PRA DESENHAR PIXEL
-function px(x, y, color){
-  ctx.fillStyle = color;
-  ctx.fillRect(x * PIXEL, y * PIXEL, PIXEL, PIXEL);
-}
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') {
+                currentIndex = (currentIndex > 0) ? currentIndex - 1 : totalOptions - 1;
+                updateMenu();
+            } else if (e.key === 'ArrowDown') {
+                currentIndex = (currentIndex < totalOptions - 1) ? currentIndex + 1 : 0;
+                updateMenu();
+            }
+        });
 
-// CÉU GRADIENTE ESCURO
-function drawSky(){
-  let grad = ctx.createLinearGradient(0,0,0,canvas.height);
-  grad.addColorStop(0,"#05070d");
-  grad.addColorStop(1,"#0b0f1a");
-  ctx.fillStyle = grad;
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-}
+        // --- Efeito de Chuva (Canvas) ---
+        const canvas = document.getElementById('rain-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-// LUA PIXELADA
-function drawMoon(){
-  let cx = 20, cy = 12;
-  for(let y=-8;y<8;y++){
-    for(let x=-8;x<8;x++){
-      if(x*x + y*y < 60){
-        px(cx+x, cy+y, "#cfd8dc");
-      }
-    }
-  }
-}
+        let particles = [];
+        for (let i = 0; i < 100; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                l: Math.random() * 20,
+                v: Math.random() * 10 + 5
+            });
+        }
 
-// CASTELO PIXEL ART
-function drawCastle(){
-  const baseY = Math.floor(canvas.height/PIXEL) - 35;
-  const centerX = Math.floor(canvas.width/PIXEL/2);
+        function drawRain() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = 'rgba(174, 194, 224, 0.5)';
+            ctx.lineWidth = 1;
+            particles.forEach(p => {
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p.x, p.y + p.l);
+                ctx.stroke();
+                p.y += p.v;
+                if (p.y > canvas.height) p.y = -p.l;
+            });
+            requestAnimationFrame(drawRain);
+        }
+        drawRain();
 
-  // TORRE ESQUERDA
-  for(let y=0;y<30;y++){
-    for(let x=0;x<10;x++){
-      px(centerX-25+x, baseY+y, "#2b2f3a");
-    }
-  }
+        // --- Música 8-bit (Web Audio API) ---
+        let audioCtx;
+        
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            playMusic();
+            document.getElementById('start-prompt').style.display = 'none';
+        }
 
-  // TORRE DIREITA
-  for(let y=0;y<30;y++){
-    for(let x=0;x<10;x++){
-      px(centerX+15+x, baseY+y, "#2b2f3a");
-    }
-  }
+        function playTone(freq, duration) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square'; // Som "quadrado" estilo NES
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
 
-  // CORPO CENTRAL
-  for(let y=10;y<35;y++){
-    for(let x=-15;x<15;x++){
-      px(centerX+x, baseY+y, "#3a3f4f");
-    }
-  }
+        // Loop de música simples e sombria
+        function playMusic() {
+            const melody = [130, 146, 155, 130, 123, 110];
+            let i = 0;
+            setInterval(() => {
+                playTone(melody[i], 0.4);
+                i = (i + 1) % melody.length;
+            }, 500);
+        }
 
-  // PORTA
-  for(let y=25;y<35;y++){
-    for(let x=-3;x<3;x++){
-      px(centerX+x, baseY+y, "#1a1a1a");
-    }
-  }
-
-  // JANELAS
-  px(centerX-20, baseY+10, "#ffd966");
-  px(centerX+20, baseY+10, "#ffd966");
-}
-
-// ÁRVORES PIXELADAS
-function drawTree(xBase){
-  let baseY = Math.floor(canvas.height/PIXEL) - 20;
-
-  // TRONCO
-  for(let y=0;y<6;y++){
-    px(xBase, baseY+y, "#4b2e19");
-  }
-
-  // COPA
-  for(let y=-6;y<0;y++){
-    for(let x=-3;x<4;x++){
-      if(Math.random()>0.2)
-        px(xBase+x, baseY+y, "#0f2f0f");
-    }
-  }
-}
-
-// CHUVA
-let rain = [];
-for(let i=0;i<200;i++){
-  rain.push({
-    x: Math.random()*canvas.width/PIXEL,
-    y: Math.random()*canvas.height/PIXEL
-  });
-}
-
-function drawRain(){
-  ctx.fillStyle = "#7fbfff";
-  rain.forEach(r=>{
-    px(r.x, r.y, "#7fbfff");
-    r.y += 0.8;
-    if(r.y > canvas.height/PIXEL) r.y = 0;
-  });
-}
-
-// RELÂMPAGO
-let flash = 0;
-function lightning(){
-  if(Math.random() < 0.002){
-    flash = 10;
-  }
-  if(flash > 0){
-    ctx.fillStyle = "rgba(255,255,255,0.15)";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    flash--;
-  }
-}
-
-// LOOP
-function loop(){
-  drawSky();
-  drawMoon();
-  drawCastle();
-  drawTree(30);
-  drawTree(50);
-  drawTree(80);
-  drawRain();
-  lightning();
-  requestAnimationFrame(loop);
-}
-
-loop();
-
-// SOM SOMBRIO 8-BIT
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playDarkMusic(){
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = "square";
-  osc.frequency.setValueAtTime(110, audioCtx.currentTime);
-  gain.gain.setValueAtTime(0.03, audioCtx.currentTime);
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.start();
-}
-document.body.addEventListener("click", playDarkMusic, {once:true});
-</script>
+        window.addEventListener('click', initAudio);
+    </script>
 </body>
 </html>
+
