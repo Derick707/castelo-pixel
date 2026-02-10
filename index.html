@@ -2,30 +2,65 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Haunted Castle Menu</title>
+<title>Dark Pixel Castle</title>
 <style>
-body { margin:0; overflow:hidden; background:#0a0f1f; font-family:monospace; color:white; }
-canvas { display:block; image-rendering: pixelated; }
-
-.menu {
-    position:absolute;
-    right:8%;
-    top:40%;
-    font-size:28px;
+body{
+  margin:0;
+  overflow:hidden;
+  background:black;
+  font-family:monospace;
+  color:white;
 }
-.menu div { margin:12px 0; }
-.arrow { display:inline-block; width:30px; color:orange; }
 
-.title {
-    position:absolute;
-    right:8%;
-    top:30%;
-    font-size:34px;
-    color:orange;
+/* FUNDO COM SUA IMAGEM */
+.bg{
+  position:fixed;
+  inset:0;
+  background:url("bg.png") center/cover no-repeat;
+  image-rendering:pixelated;
+  z-index:-3;
 }
+
+/* CANVAS DAS ANIMAÇÕES */
+canvas{
+  position:fixed;
+  inset:0;
+  z-index:-2;
+}
+
+/* FLASH DO RELÂMPAGO */
+.flash{
+  position:fixed;
+  inset:0;
+  background:white;
+  opacity:0;
+  pointer-events:none;
+  z-index:-1;
+}
+
+.title{
+  position:absolute;
+  right:8%;
+  top:25%;
+  font-size:42px;
+  color:#ff9d2e;
+  text-shadow:4px 4px 0 #000;
+}
+
+.menu{
+  position:absolute;
+  right:8%;
+  top:40%;
+  font-size:32px;
+}
+.menu div{ margin:14px 0; }
+.arrow{ display:inline-block; width:32px; color:#ff9d2e; }
 </style>
 </head>
 <body>
+
+<div class="bg"></div>
+<div class="flash" id="flash"></div>
 <canvas id="c"></canvas>
 
 <div class="title">START GAME</div>
@@ -36,162 +71,102 @@ canvas { display:block; image-rendering: pixelated; }
 </div>
 
 <script>
-const canvas = document.getElementById("c");
-const ctx = canvas.getContext("2d");
-canvas.width = innerWidth;
-canvas.height = innerHeight;
+const canvas=document.getElementById("c");
+const ctx=canvas.getContext("2d");
+const flash=document.getElementById("flash");
 
-let rain=[], clouds=[], lightning=0;
-let menuIndex=0;
-const menuItems=document.querySelectorAll(".menu div");
+function resize(){
+  canvas.width=innerWidth;
+  canvas.height=innerHeight;
+}
+resize();
+addEventListener("resize",resize);
 
-// chuva
-for(let i=0;i<250;i++){
+/* 🌧️ CHUVA */
+let rain=[];
+for(let i=0;i<350;i++){
  rain.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,l:10+Math.random()*15,s:4+Math.random()*4});
 }
 
-// nuvens
-for(let i=0;i<6;i++){
- clouds.push({x:Math.random()*canvas.width,y:50+Math.random()*150,s:0.2+Math.random()*0.4});
-}
-
-function pixelRect(x,y,w,h,color){
- ctx.fillStyle=color;
- ctx.fillRect(Math.floor(x),Math.floor(y),w,h);
-}
-
-function drawMoon(){
- ctx.fillStyle="#dfe8ff";
- ctx.beginPath();
- ctx.arc(canvas.width*0.75, canvas.height*0.25, 70, 0, Math.PI*2);
- ctx.fill();
-}
-
-function drawCastle(){
- let baseY = canvas.height-250;
- pixelRect(80, baseY, 180, 150, "#2a2f45");
- pixelRect(110, baseY-80, 40, 80, "#2a2f45");
- pixelRect(190, baseY-100, 40, 100, "#2a2f45");
-
- // torres
- pixelRect(70, baseY-120, 60, 120, "#22283b");
- pixelRect(210, baseY-150, 60, 150, "#22283b");
-
- // portas
- pixelRect(150, baseY+70, 40, 60, "#5c2b1a");
-
- // janelas piscando
- if(Math.random()<0.02){
-   ctx.fillStyle = Math.random()<0.5 ? "#ffcc66" : "#000";
- }
- pixelRect(120, baseY-40, 15, 20, "#ffcc66");
- pixelRect(200, baseY-60, 15, 20, "#ffcc66");
-}
-
-function drawWater(){
- ctx.fillStyle="#0b1f33";
- ctx.fillRect(0, canvas.height-120, canvas.width,120);
-
- ctx.strokeStyle="rgba(200,220,255,0.2)";
- for(let i=0;i<canvas.width;i+=20){
-  ctx.beginPath();
-  ctx.moveTo(i, canvas.height-100+Math.sin(Date.now()/300+i)*5);
-  ctx.lineTo(i+20, canvas.height-100+Math.sin(Date.now()/300+i+20)*5);
-  ctx.stroke();
- }
-}
-
-function drawTrees(){
- for(let i=0;i<canvas.width;i+=120){
-  let sway=Math.sin(Date.now()/600+i)*5;
-  ctx.fillStyle="#0a1a0a";
-  ctx.beginPath();
-  ctx.moveTo(i+sway,canvas.height-120);
-  ctx.lineTo(i+40+sway,canvas.height-200);
-  ctx.lineTo(i+80+sway,canvas.height-120);
-  ctx.fill();
- }
-}
-
 function drawRain(){
- ctx.strokeStyle="rgba(180,200,255,0.5)";
+ ctx.strokeStyle="rgba(180,200,255,0.45)";
+ ctx.lineWidth=1;
  rain.forEach(r=>{
   ctx.beginPath();
   ctx.moveTo(r.x,r.y);
   ctx.lineTo(r.x,r.y+r.l);
   ctx.stroke();
   r.y+=r.s;
-  if(r.y>canvas.height){ r.y=-10; r.x=Math.random()*canvas.width; }
+  if(r.y>canvas.height){r.y=-20;r.x=Math.random()*canvas.width;}
  });
 }
 
-function drawClouds(){
- ctx.fillStyle="#1a233a";
- clouds.forEach(c=>{
+/* 🌫️ NÉVOA */
+let fog=[];
+for(let i=0;i<6;i++){
+ fog.push({x:Math.random()*canvas.width,y:100+Math.random()*300,s:0.2+Math.random()*0.3});
+}
+
+function drawFog(){
+ ctx.fillStyle="rgba(200,200,255,0.05)";
+ fog.forEach(f=>{
   ctx.beginPath();
-  ctx.arc(c.x,c.y,40,0,Math.PI*2);
-  ctx.arc(c.x+40,c.y+10,50,0,Math.PI*2);
+  ctx.arc(f.x,f.y,150,0,Math.PI*2);
   ctx.fill();
-  c.x+=c.s;
-  if(c.x>canvas.width+100)c.x=-100;
+  f.x+=f.s;
+  if(f.x>canvas.width+200)f.x=-200;
  });
 }
 
-function drawLightning(){
- if(Math.random()<0.005) lightning=5;
- if(lightning>0){
-  ctx.strokeStyle="white";
-  ctx.lineWidth=3;
-  ctx.beginPath();
-  ctx.moveTo(100,0);
-  ctx.lineTo(130,100);
-  ctx.lineTo(110,200);
-  ctx.stroke();
-  lightning--;
+/* ⚡ RELÂMPAGO */
+function lightning(){
+ if(Math.random()<0.004){
+   flash.style.opacity=0.85;
+   setTimeout(()=>flash.style.opacity=0,120);
  }
 }
 
 function animate(){
- ctx.fillStyle="#0a0f1f";
- ctx.fillRect(0,0,canvas.width,canvas.height);
-
- drawMoon();
- drawClouds();
- drawCastle();
- drawTrees();
- drawWater();
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ drawFog();
  drawRain();
- drawLightning();
-
+ lightning();
  requestAnimationFrame(animate);
 }
 animate();
 
-// 🎵 Música 8-bit sombria
+/* 🎵 MÚSICA 8-BIT SOMBRIA */
 const audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-function tone(f,t){
- const o=audioCtx.createOscillator();
- const g=audioCtx.createGain();
- o.type="square"; o.frequency.value=f;
- o.connect(g); g.connect(audioCtx.destination);
- o.start();
- g.gain.setValueAtTime(0.1,audioCtx.currentTime);
- g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+t);
- o.stop(audioCtx.currentTime+t);
+function tone(freq,time){
+ const osc=audioCtx.createOscillator();
+ const gain=audioCtx.createGain();
+ osc.type="square";
+ osc.frequency.value=freq;
+ osc.connect(gain);
+ gain.connect(audioCtx.destination);
+ osc.start();
+ gain.gain.setValueAtTime(0.07,audioCtx.currentTime);
+ gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+time);
+ osc.stop(audioCtx.currentTime+time);
 }
-let notes=[220,262,196,174,196,220,262,330];
-let n=0;
-setInterval(()=>{tone(notes[n],0.25);n=(n+1)%notes.length;},300);
-document.body.onclick=()=>audioCtx.resume();
 
-// menu
+let notes=[196,220,174,196,147,174,196,220];
+let n=0;
+setInterval(()=>{tone(notes[n],0.3);n=(n+1)%notes.length;},360);
+
+// Navegadores só liberam som após interação
+document.body.addEventListener("click",()=>audioCtx.resume());
+
+/* 🎮 MENU */
+let menuIndex=0;
+const items=document.querySelectorAll(".menu div");
 function updateMenu(){
- menuItems.forEach((m,i)=>m.querySelector(".arrow").textContent=i===menuIndex?"▶":"");
+ items.forEach((it,i)=>it.querySelector(".arrow").textContent=i===menuIndex?"▶":"");
 }
 document.addEventListener("keydown",e=>{
  if(e.key==="ArrowUp"){menuIndex=(menuIndex-1+3)%3;updateMenu();}
  if(e.key==="ArrowDown"){menuIndex=(menuIndex+1)%3;updateMenu();}
- if(e.key==="Enter"){alert("Selecionado: "+menuItems[menuIndex].innerText);}
+ if(e.key==="Enter"){alert("Selecionado: "+items[menuIndex].innerText);}
 });
 </script>
 </body>
